@@ -1,6 +1,6 @@
 const express = require('express');
 const http = require('http');
-const Pool = require('pg').Pool;
+const pg = require('pg');
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -12,12 +12,13 @@ const authMiddleware = async (req, res, next) => {
     next();
   } catch (error) {
     console.error(error);
-    res.status(401);
+    res.status(401, 'Unauthorized').end();
   }
 };
 
-const pool = new Pool({
+const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: true,
 });
 
 const validateAPIToken = (token) => {
