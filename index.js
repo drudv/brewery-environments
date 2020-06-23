@@ -1,6 +1,17 @@
 const express = require('express');
 const http = require('http');
 const pg = require('pg');
+const moment = require('moment-timezone');
+
+const MAX_RESULT_LEN = 100;
+
+const validateISOTimestamp = (value) => {
+  const isValid = value ? moment(value, moment.ISO_8601).isValid() : false;
+  if (!isValid) {
+    throw new Error(`Wrong timestamp: ${value}`);
+  }
+  return value;
+};
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -39,10 +50,17 @@ const validateAPIToken = (token) => {
   });
 };
 
-const getEnvironments = () => {
+const getEnvironments = (since) => {
+  let condition = '';
+  let parameters = [];
+  if (since) {
+    condition = `WHERE last_changed >= timestamp $1`;
+    parameters = [since];
+  }
+
   return new Promise((resolve, reject) => {
     pool.query(
-      'SELECT * FROM environment ORDER BY id ASC',
+      `SELECT id, org_id, owner, note, last_changed FROM environment ${condition} ORDER BY id ASC LIMIT ${MAX_RESULT_LEN}`,
       (error, results) => {
         if (error) {
           reject(error);
@@ -54,13 +72,43 @@ const getEnvironments = () => {
   });
 };
 
+const getReservations = (since) => {
+  let condition = '';
+  let parameters = [];
+  if (since) {
+    condition = `WHERE last_changed >= timestamp $1`;
+    parameters = [since];
+  }
+  const query = `SELECT id, environment_id, duration, note, by_user, last_changed FROM reservation ${condition} ORDER BY duration ASC LIMIT ${MAX_RESULT_LEN}`;
+  return new Promise((resolve, reject) => {
+    pool.query(query, parameters, (error, results) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(results.rows);
+    });
+  });
+};
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.get('/api/v0/environment', authMiddleware, async (req, res) => {
-  const envs = await getEnvironments();
+  const since = req.query.since
+    ? validateISOTimestamp(req.query.since)
+    : undefined;
+  const envs = await getEnvironments(since);
   return res.send(envs);
+});
+
+app.get('/api/v0/reservation', authMiddleware, async (req, res) => {
+  const since = req.query.since
+    ? validateISOTimestamp(req.query.since)
+    : undefined;
+  const reservations = await getReservations(since);
+  return res.send(reservations);
 });
 
 const server = http.createServer(app);
