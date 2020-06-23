@@ -18,7 +18,6 @@ const authMiddleware = async (req, res, next) => {
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: true,
 });
 
 const validateAPIToken = (token) => {
