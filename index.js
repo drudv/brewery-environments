@@ -11,7 +11,7 @@ const pool = new Pool({
 const getEnvironments = () => {
   return new Promise((resolve, reject) => {
     pool.query(
-      'SELECT * FROM environments ORDER BY id ASC',
+      'SELECT * FROM environment ORDER BY id ASC',
       (error, results) => {
         if (error) {
           reject(error);
