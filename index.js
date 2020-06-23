@@ -61,6 +61,7 @@ const getEnvironments = (since) => {
   return new Promise((resolve, reject) => {
     pool.query(
       `SELECT id, org_id, owner, note, last_changed FROM environment ${condition} ORDER BY id ASC LIMIT ${MAX_RESULT_LEN}`,
+      parameters,
       (error, results) => {
         if (error) {
           reject(error);
@@ -79,7 +80,7 @@ const getReservations = (since) => {
     condition = `WHERE last_changed >= timestamp $1`;
     parameters = [since];
   }
-  const query = `SELECT id, environment_id, duration, note, by_user, last_changed FROM reservation ${condition} ORDER BY duration ASC LIMIT ${MAX_RESULT_LEN}`;
+  const query = `SELECT id, environment_id, lower(duration) as begin, upper(duration) as end, note, by_user, last_changed FROM reservation ${condition} ORDER BY duration ASC LIMIT ${MAX_RESULT_LEN}`;
   return new Promise((resolve, reject) => {
     pool.query(query, parameters, (error, results) => {
       if (error) {
