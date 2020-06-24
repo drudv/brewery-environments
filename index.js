@@ -152,7 +152,7 @@ app.post(
   }
 );
 
-app.post(
+app.put(
   '/api/v0/environment/:environmentId/reservation/:reservationId',
   authMiddleware,
   async (req, res) => {
