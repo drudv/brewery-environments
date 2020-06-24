@@ -105,6 +105,29 @@ const addReservation = ({ begin, end, environmentId, user }) => {
   });
 };
 
+const updateReservation = ({
+  reservationId,
+  begin,
+  end,
+  environmentId,
+  note,
+}) => {
+  const query = `UPDATE reservation SET duration = tstzrange($3, $4, '[)'), note = $5 WHERE id = $1 and environment_id = $2`;
+  return new Promise((resolve, reject) => {
+    pool.query(
+      query,
+      [reservationId, begin, end, environmentId, note],
+      (error, results) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(results.rows);
+      }
+    );
+  });
+};
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -126,6 +149,24 @@ app.post(
       user,
     });
     return res.send(newReservation);
+  }
+);
+
+app.post(
+  '/api/v0/environment/:environmentId/reservation/:reservationId',
+  authMiddleware,
+  async (req, res) => {
+    let { begin, end, note } = req.body || {};
+    begin = validateISOTimestamp(begin);
+    end = validateISOTimestamp(end);
+    const updatedReservation = await updateReservation({
+      begin,
+      end,
+      environmentId: req.params.environmentId,
+      reservationId: req.params.reservationId,
+      note: note || null,
+    });
+    return res.send(updatedReservation);
   }
 );
 
