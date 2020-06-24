@@ -92,9 +92,42 @@ const getReservations = (since) => {
   });
 };
 
+const addReservation = ({ begin, end, environmentId, user }) => {
+  const query = `INSERT INTO reservation(environment_id, duration, by_user) VALUES ($1, tstzrange($2, $3, '[)'), $4);`;
+  return new Promise((resolve, reject) => {
+    pool.query(query, [environmentId, begin, end, user], (error, results) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(results.rows);
+    });
+  });
+};
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.post(
+  '/api/v0/environment/:environmentId/add-reservation',
+  authMiddleware,
+  async (req, res) => {
+    let { begin, end, user } = req.body || {};
+    begin = validateISOTimestamp(begin);
+    end = validateISOTimestamp(end);
+    if (!user) {
+      throw new Error('No details about who made reservation');
+    }
+    const newReservation = await addReservation({
+      begin,
+      end,
+      environmentId: req.params.environmentId,
+      user,
+    });
+    return res.send(newReservation);
+  }
+);
 
 app.get('/api/v0/environment', authMiddleware, async (req, res) => {
   const since = req.query.since
