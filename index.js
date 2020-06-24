@@ -116,7 +116,7 @@ const updateReservation = ({
   return new Promise((resolve, reject) => {
     pool.query(
       query,
-      [reservationId, begin, end, environmentId, note],
+      [reservationId, environmentId, begin, end, note],
       (error, results) => {
         if (error) {
           reject(error);
